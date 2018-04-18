@@ -41,3 +41,4 @@ python simulate_fasta2fastq.py -a ref.fasta -b SE80 -n 5000000 -e 0.1 -o ./ -c C
 若为PE类型，则模拟出的read1和read2一模一样。
 
 脚本在有生之年会持续更新。欢迎评论留言
+https://www.jianshu.com/p/4181ac1b0c4e
