@@ -44,7 +44,7 @@ parser.add_argument('-v', action="version",dest="1.0",help='show version' )
 argument = parser.parse_args()
 
 def random_err(seq,sequence_length,err_rate):
-	if len(seq) != 100:
+	if len(seq) != sequence_length:
 		print("rawseq is not 100bp: %s"%seq)
 	i = int(err_rate*sequence_length)
 	# i 表示错误碱基个数 = 错误率 * 测序长度。比如：测序长度为100bp，那么10%的错误率则为10bp，即每100bp中最多可以有10bp错误。
@@ -95,15 +95,19 @@ def random_err(seq,sequence_length,err_rate):
 		print("newseq: %s"%newseq) 
 	################################################################
 	return newseq,err_num
-for seq_record in SeqIO.parse(argument.ref,"fasta"):
-	fasta_seq = seq_record.seq
-	fasta_length = len(seq_record.seq)
-	# print(fasta_length)
-# print(type(fasta_seq))
+
+def deal_fasta(fasta):
+	str(total_seq)
+	int(total_length)
+	for seq_record in SeqIO.parse(fasta,"fasta"):
+		total_seq += seq_record.seq
+		total_length += len(seq_record.seq)
+	return total_seq,total_length
 
 sequence_type = argument.seq_type[:2]
 sequence_length = int(argument.seq_type[2:])
 
+fasta_seq,fasta_length = deal_fasta(argument.ref)
 # result_list = [random.randrange(10) for i in range(100)] 
 # 表示随机生成100个（0到10）之间的随机数，其中0包含在里面，10不包含在里面，并且随机数之间会有重复。从0开始也表示索引，
 result_list = [random.randrange(fasta_length+1-sequence_length) for i in range(argument.data_amount)]
