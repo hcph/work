@@ -1,0 +1,317 @@
+#!/usr/bin/perl -w
+use strict;
+use Getopt::Long;
+use File::Basename;
+use FindBin qw($Bin $Script);
+use Cwd qw(abs_path);
+
+my ($input, $indir, $target, $output, $cutoff_snp, $cutoff_indel, $cutoff_readnumber, $cutoff_readrate, $cutoff_variantdepth, $help);
+
+my $text = "
+Usage: perl $0 [options]
+  -i  *  input list
+  -d  *  input directory
+  -o  *  output
+
+  -p     20 target variant list [ Bin/../database/target_20variants.xls ]
+  -cs    snp depth cutoff [ 30 ]
+  -ci    indel depth cutoff [ 20 ]
+  -cl    library read number cutoff [ 3,000,000 ]
+  -clr   library read rate cutoff [ 0.001 ]
+  -csp   each variant depth cutoff [ 30 ]
+
+  -h     help
+";
+
+GetOptions(
+  "i=s" => \$input,
+  "d=s" => \$indir,
+  "p=s" => \$target,
+  "o=s" => \$output,
+  "cs=i" => \$cutoff_snp,
+  "ci=i" => \$cutoff_indel,
+  "cl=i" => \$cutoff_readnumber,
+  "clr=f" => \$cutoff_readrate,
+  "csp=i" => \$cutoff_variantdepth,
+  "h" => \$help,
+);
+
+die "$text\n" unless defined $input && defined $indir && defined $output && !defined $help;
+#eg: 
+
+$target ||= "$Bin/../database/target_20variants.xls";
+$cutoff_snp ||= 30;
+$cutoff_indel ||= 20;
+$cutoff_readnumber ||= 3000000;
+$cutoff_readrate ||= 0.001;
+$cutoff_variantdepth ||= 30;
+
+my (%th, %pos_info, %wt_info, @header_list);
+open THE,"$Bin/../database/threshold.txt";
+while(<THE>){
+    chomp;
+    my @a = split;
+    $th{$a[0]} = $_;
+}
+close THE;
+
+open POS,$target;
+while(<POS>){
+    chomp;
+    next if /^#/;
+    my @field = split /\s+/;
+    $pos_info{$field[0]}{$field[1]} = [@field];
+    $wt_info{$field[4]} = [@field];
+    push @header_list, $field[4];
+}
+close POS;
+
+my ($barcode_id, $index_id);
+my ($readnumber, %readnumber, %tpr, %vcf);
+open IN,"$input";
+# slide        lane     barcode      index                  fq_path
+# CL00000001   L01      11           1,2,44,45,46,47,49     /dir1/dir2/slide_lane_1.fq.gz
+while(<IN>){
+    chomp;
+    next if /^slide/i;
+    my @a = split /\s+/;
+    $barcode_id = $a[2];
+    $barcode_id =~ s/^0+//; $barcode_id = ($barcode_id < 10) ? "0$barcode_id" : $barcode_id;
+
+    foreach $index_id (split /\,/, $a[3]){
+        $index_id = ($index_id < 10) ? "00$index_id" :
+            ($index_id < 100) ? "0$index_id" : $index_id;
+        my $bam = "$indir/barcode_$barcode_id/index_$index_id.5.final.bam";
+        my $vcf = "$indir/barcode_$barcode_id/index_$index_id.5.final.bam.vcf";
+        my $tpr = "$indir/barcode_$barcode_id/index_$index_id.5.final.bam.tpr";
+        next if (!-e $bam);
+        $readnumber{$barcode_id}{$index_id} = `$Bin/samtools flagstat $bam | head -1 | awk '{print \$1}'`;
+        chomp $readnumber{$barcode_id}{$index_id};
+        $readnumber{$barcode_id}{"total"} += $readnumber{$barcode_id}{$index_id};
+
+        open TPR, $tpr;
+        while(<TPR>){
+            chomp;
+            my ($site, $nid, $nt, $rate) = split;
+            $tpr{$site} = "$nid;$nt;$rate";
+        }
+        close TPR;
+        open VCF, $vcf;
+        while(<VCF>){
+            chomp;
+            next if /^#/;
+            my @field = split /\s+/;
+            next unless exists $pos_info{$field[0]}{$field[1]};
+            my ($chr, $pos, $ref, $alt) = @field[0,1,3,4];
+            my $raw_dp = 0;
+            if ($field[7] =~ /DP=(\d+)/)    { $raw_dp = $1; }
+            my @result_fld = split /:/, $field[9];
+            my ($gt_word, $gq_word) = @result_fld[0,3];
+            my $ad_word = $result_fld[1] ? $result_fld[1] : '0,0';
+            my ($ad_ref, $ad_alt) = split /,/, $ad_word;
+            my $sum_dp = $gt_word eq './.' ? 0 : $ad_ref+$ad_alt;
+            my ($gt, $ad, $gq);
+            my $site = $field[2];
+            my $af = 0;
+            if ($site !~ /del/) {
+                if ($sum_dp > $cutoff_snp)  {
+                    $gt = $gt_word eq '0/0' ? 'WT' :
+                        $gt_word eq '0/1' ? 'Hetero' :
+                        $gt_word eq '1/1' ? 'Homo' : 'Err';
+                    ($ad, $gq) = ("$ad_ref;$ad_alt", $gq_word);
+                    $af = $ad_alt / ($ad_ref + $ad_alt);
+                }
+                elsif($raw_dp > $cutoff_snp)  { # use mpileup
+                    print STDERR "cjeck: $chr:$pos-$pos\n";
+                    my $mpileup = `$Bin/samtools mpileup -d 20000 -f $Bin/../database/hg19.fa -r $chr:$pos-$pos $bam`;
+                    if ($mpileup eq '') {
+                        ($gt, $ad, $gq) = ('NA', '0;0', '0');
+                        $af = 0;
+                    }else   {
+                        my $pileup = (split /\t/, $mpileup)[4];
+                        my $copy = $pileup;
+                        $copy =~ s/\^.//g;
+                        $copy =~ s/\$//g;
+                        while ($copy =~ /([+-])(\d+)/)  {
+                            my ($sign, $num) = ($1, $2);
+                            if ($sign eq '+')   {
+                                $copy =~ s/.\+$num([ACGTNacgtn]{$num})/+/;
+                            }else   {
+                                $copy =~ s/.-$num([ACGTNacgtn]{$num})/-/;
+                            }
+                        }
+                        my @char = split //, $copy;
+                        my @pos = grep {/\./} @char;
+                        my @neg = grep {/,/} @char;
+                        my $alt = $site;
+                        $alt =~ s/.+(.)$/$1/;
+                        my $alt_n = $alt;
+                        $alt_n =~ tr/ACGT/acgt/;
+                        my @alt_p = grep {/$alt/} @char;
+                        my @alt_n = grep {/$alt_n/} @char;
+                        my $total_dep = @char;
+                        my $ref_dep = @pos+@neg;
+                        my $alt_dep = @alt_p+@alt_n;
+                        my $alt_r = $alt_dep/($ref_dep+$alt_dep);
+                        $gt = &judge( $alt_r, $site );
+                        $ad = "$ref_dep;$alt_dep";
+                        $gq = 99;
+                        $af = $alt_dep / ($ref_dep + $alt_dep);
+                    }
+                }
+                else{
+                    $gt = $ad = "NA";
+                    $gq = 0;
+                    $af = 0;
+                }
+            }
+            else{ # TPR for del, don`t understand!
+                if ($tpr{$site}) {
+                    my ($d1, $dt, $rate) = split /;/, $tpr{$site};
+                    if ($rate eq 'NA')  {
+                        ($gt, $ad, $gq) = ('NA', 'NA', '0');
+                    }elsif ($dt < $cutoff_indel)  {
+                        my $d0 = $dt-$d1;
+                        ($gt, $ad, $gq) = ('NA', "$d0;$d1", '0');
+                    }else   {
+                        my $d0 = $dt-$d1;
+                        $gt = &judge( $rate, $site );
+                        $ad = "$d0;$d1";
+                        $gq = ($dt < $cutoff_indel) ? 0 :
+                            ($gt eq 'NA')       ? 0 : 99;
+                    }
+                }else   {
+                    ($gt, $ad, $gq) = ("NA", "NA", "0");
+                }
+            }
+
+            if($field[0] eq "chrM"){
+                if($af > 0){
+                    $gt = &judge( $af, $site );
+                    if($gt eq "NA"){
+                        $ad = "NA";
+                        $gq = 0;
+                    }
+                }
+            }
+
+            if( $gt eq "NA"){
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[0] = $gt;
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[1] = $gt;
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[2] = $ad;
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[3] = $gq;
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[4] = 0;
+            }
+            else{
+                my $gt_type;
+                if( $gt eq "WT" ){
+                    $gt_type = 7;
+                }
+                elsif( $gt eq "Hetero" ){
+                    $gt_type = 9;
+                }
+                elsif( $gt eq "Homo" ){
+                    $gt_type = 11;
+                }
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[0] = $pos_info{$field[0]}{$field[1]}[ $gt_type + 1 ];
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[1] = $pos_info{$field[0]}{$field[1]}[ $gt_type ];
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[2] = $ad;
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[3] = $gq;
+                $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[4] = (split /\;/, $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[2])[0] + (split /\;/, $vcf{$barcode_id}{$index_id}{ $pos_info{$field[0]}{$field[1]}[4] }[2])[1];
+            }
+
+        }
+        close VCF;
+
+    }
+}
+close IN;
+
+my @flag_id = qw/Type GT AD GQ/;
+my @fail = qw/NA NA 0 0/;
+my (@out, $qc_library, $qc_sample, $qc_variant);
+open OT1,">$output";
+print OT1 "Slide\tLane\tBarcode\tIndex\tInfo\t".(join "\t",@header_list)."\n";
+open IN,"$input";
+while(<IN>){
+    chomp;
+    next if /^slide/i;
+    my @a = split /\s+/;
+    $barcode_id = $a[2];
+    $barcode_id =~ s/^0+//; $barcode_id = ($barcode_id < 10) ? "0$barcode_id" : $barcode_id;
+
+    $qc_library = 1 if $readnumber{$barcode_id}{"total"} >= $cutoff_readnumber;
+
+    foreach $index_id (split /\,/, $a[3]){
+        @out = ();
+        for(my $i = 0; $i < 4; $i++){
+            $out[$i] = "$a[0]\t$a[1]\t$a[2]\t$index_id\t$flag_id[$i]";
+        }
+
+        $index_id = ($index_id < 10) ? "00$index_id" :
+            ($index_id < 100) ? "0$index_id" : $index_id;
+        
+        next unless exists $vcf{$barcode_id}{$index_id};
+        
+        # qc1: library read number
+        if($qc_library == 0){
+            for(my $i = 0; $i < @header_list; $i++){
+                $out[0] .= "\tNA";
+                $out[1] .= "\tNA";
+                $out[2] .= "\t0";
+                $out[3] .= "\t0";
+            }
+            for(my $i = 0; $i < 4; $i++){
+                print OT1 "$out[$i]\n";
+            }
+            next;
+        }
+
+        # qc3: sample read number
+        my $rate = $readnumber{$barcode_id}{$index_id} / $readnumber{$barcode_id}{"total"};
+        if($rate < $cutoff_readrate){
+            for(my $i = 0; $i < @header_list; $i++){
+                $out[0] .= "\tNA";
+                $out[1] .= "\tNA";
+                $out[2] .= "\t0";
+                $out[3] .= "\t0";
+            }
+            for(my $i = 0; $i < 4; $i++){
+                print OT1 "$out[$i]\n";
+            }
+            next;
+        }
+
+        # qc4: variant depth
+        foreach my $pos(@header_list){
+            $qc_variant = ($vcf{$barcode_id}{$index_id}{$pos}[4] < $cutoff_variantdepth) ? 0 : 1;
+            if($qc_variant == 0){
+                $out[0] .= "\tNA";
+                $out[1] .= "\tNA";
+                $out[2] .= "\t0";
+                $out[3] .= "\t0";
+            }
+            else{
+                for(my $i = 0; $i < 4; $i++){
+                    $out[$i] .= "\t$vcf{$barcode_id}{$index_id}{$pos}[$i]";
+                }
+            }
+        }
+        for(my $i = 0; $i < 4; $i++){
+            print OT1 "$out[$i]\n";
+        }
+    }
+}
+close IN;
+close OT1;
+
+sub judge   {
+    my ($ratio, $site) = @_;
+    my $thres_line = $th{$site} ? $th{$site} : $th{'default'};
+    my @thres = split /\s+/, $thres_line;
+    return my $type = $ratio > $thres[4] ? 'Homo' :
+        $ratio < $thres[1] ? 'WT' :
+        $ratio < $thres[3] && $ratio > $thres[2] ? 'Hetero' : 'NA';
+}
+
+
