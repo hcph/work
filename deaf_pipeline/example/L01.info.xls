@@ -1,0 +1,16 @@
+Barcode	index	sample	538C>T	547G>A	281C>T	589G>A	IVS7-2A>G	1174A>T	1226G>A	1229C>T	IVS15+5G>A	1975G>C	2027T>A	2162C>T	2168A>G	35delG	176_191del16	235delC	299_300delAT	1095T>C	1494C>T	1555A>G
+barcode_1	ID_001	P1	WT	Hetero	Hetero	WT	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero	WT	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero
+barcode_1	ID_002	P2	Hetero	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	WT
+barcode_1	ID_003	P3	WT	Homo	WT	WT	Homo	WT	Homo	Homo	Homo	Homo	WT	WT	Homo	Homo	WT	Homo	WT	Homo	Homo	WT
+barcode_2	ID_001	P1	WT	Hetero	Hetero	WT	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero	WT	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero	Hetero
+barcode_2	ID_003	P3	WT	Homo	WT	WT	Homo	WT	Homo	Homo	Homo	Homo	WT	WT	Homo	Homo	WT	Homo	WT	Homo	Homo	WT
+barcode_2	ID_004	P4	WT	WT	Homo	WT	WT	Homo	WT	WT	WT	WT	Homo	WT	WT	WT	Homo	WT	Homo	WT	WT	Homo
+barcode_3	ID_055	P7	WT	WT	WT	WT	WT	WT	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT
+barcode_4	ID_047	P7	WT	WT	WT	WT	WT	WT	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT
+barcode_4	ID_048	N1	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT
+barcode_4	ID_049	P2	Hetero	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	WT
+barcode_15	ID_007	P7	WT	WT	WT	WT	WT	WT	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT
+barcode_15	ID_008	P8	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT
+barcode_15	ID_009	P9	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	WT	Homo
+barcode_16	ID_022	P2	Hetero	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	Hetero	WT	WT	WT	WT	WT	WT	WT	WT
+barcode_16	ID_023	P3	WT	Homo	WT	WT	Homo	WT	Homo	Homo	Homo	Homo	WT	WT	Homo	Homo	WT	Homo	WT	Homo	Homo	WT
