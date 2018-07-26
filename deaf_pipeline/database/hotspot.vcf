@@ -1,0 +1,26 @@
+##fileformat=VCFv4.1
+##contig=<ID=chr1,length=249250621,assembly=hg19>
+##contig=<ID=chr7,length=159138663,assembly=hg19>
+##contig=<ID=chr13,length=115169878,assembly=hg19>
+##contig=<ID=chrM,length=16569,assembly=hg19>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	35250901	538C>T	C	T	.	.	.
+chr1	35250910	547G>A	G	A	.	.	.
+chr7	107303857	281C>T	C	T	.	.	.
+chr7	107314782	589G>A	G	A	.	.	.
+chr7	107323898	IVS7-2A>G	A	G	.	.	.
+chr7	107330593	1174A>T	A	T	.	.	.
+chr7	107330645	1226G>A	G	A	.	.	.
+chr7	107330648	1229C>T	C	T	.	.	.
+chr7	107340625	IVS15+5G>A	G	A	.	.	.
+chr7	107342443	1975G>C	G	C	.	.	.
+chr7	107342495	2027T>A	T	A	.	.	.
+chr7	107350571	2162C>T	C	T	.	.	.
+chr7	107350577	2168A>G	A	G	.	.	.
+chr13	20763420	299_300delAT	CAT	C	.	.	.
+chr13	20763485	235delC	AG	A	.	.	.
+chr13	20763529	176_191del16	GCACACGTTCTTGCAGC	G	.	.	.
+chr13	20763685	35delG	AC	A	.	.	.
+chrM	1095	1095T>C	T	C	.	.	.
+chrM	1494	1494C>T	C	T	.	.	.
+chrM	1555	1555A>G	A	G	.	.	.
