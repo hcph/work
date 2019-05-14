@@ -35,6 +35,7 @@ seq = fasta_seq[i:i+int(sequence_length)]
 用法：
 
 python simulate_fasta2fastq.py -a ref.fasta -b PE100 -n 5000000 -e 0.1 -o ./ -c CL100000100_L02_153_1.fq.gz -d CL100000100_L02_153_2.fq.gz
+
 python simulate_fasta2fastq.py -a ref.fasta -b SE80 -n 5000000 -e 0.1 -o ./ -c CL100000100_L02_153_1.fq.gz
 
 说明：
