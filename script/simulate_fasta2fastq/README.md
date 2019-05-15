@@ -32,7 +32,7 @@ seq = fasta_seq[i:i+int(sequence_length)]
 
 4，模拟出碱基质量值（此处为伪造为最高质量值），后续修改为随机某个范围内的质量值。
 
-用法：
+用法：(推荐python 2.7版本，python3+ 未测试）
 
 python simulate_fasta2fastq.py -a ref.fasta -b PE100 -n 5000000 -e 0.1 -o ./ -c CL100000100_L02_153_1.fq.gz -d CL100000100_L02_153_2.fq.gz
 
