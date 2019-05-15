@@ -97,8 +97,8 @@ def random_err(seq,sequence_length,err_rate):
 	return newseq,err_num
 
 def deal_fasta(fasta):
-	str(total_seq)
-	int(total_length)
+	total_seq = ''
+	total_length = 0
 	for seq_record in SeqIO.parse(fasta,"fasta"):
 		total_seq += seq_record.seq
 		total_length += len(seq_record.seq)
