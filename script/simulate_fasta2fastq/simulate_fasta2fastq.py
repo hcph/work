@@ -7,7 +7,7 @@ from Bio import SeqIO
 from contextlib import nested
 def Usage():
     __version__ = "1.0.0"
-    print（"""
+    print ("""
 Program: %s
 Version: 1.0
 Contact: dushiyi@genomics.cn
@@ -29,7 +29,7 @@ Options:
 Example:
     python %s -f /yourpath/01.split_virusbarcode/barcode_16/barcode_03.fq.gz -s 17 -l  30 -o /yourpath/02.bwa/barcode_16
 
-"""% (sys.argv[0],sys.argv[0],sys.argv[0])）
+"""% (sys.argv[0],sys.argv[0],sys.argv[0]))
 
 parser = argparse.ArgumentParser(description='Short sample app')
 
